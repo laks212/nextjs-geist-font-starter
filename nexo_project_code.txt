@@ -1,0 +1,840 @@
+# NEXO Project - Complete Source Code
+
+## Project Structure
+```
+src/
+├── app/
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── providers.tsx
+│   ├── ai/
+│   │   └── page.tsx
+│   ├── api/
+│   │   ├── auth/
+│   │   │   ├── login/
+│   │   │   │   └── route.ts
+│   │   │   └── register/
+│   │   │       └── route.ts
+│   │   └── chat/
+│   │       └── route.ts
+│   ├── career/
+│   │   └── page.tsx
+│   ├── historical/
+│   │   └── page.tsx
+│   ├── legacy/
+│   │   └── page.tsx
+│   └── settings/
+│       └── page.tsx
+├── components/
+│   ├── ai/
+│   │   └── PersonalizedAIChat.tsx
+│   ├── career/
+│   │   └── CareerRecommendations.tsx
+│   ├── historical/
+│   │   └── HistoricalCharacterChat.tsx
+│   ├── legacy/
+│   │   └── LegacyMessageCreator.tsx
+│   └── settings/
+│       └── SettingsPanel.tsx
+├── hooks/
+│   └── use-mobile.ts
+└── lib/
+    └── utils.ts
+```
+
+## Configuration Files
+
+### next.config.js
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  // Configure API routes
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
+  },
+}
+
+module.exports = nextConfig
+```
+
+### package.json
+```json
+{
+  "name": "nexo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@radix-ui/react-switch": "^1.0.3",
+    "next": "^14.0.4",
+    "next-themes": "^0.2.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.3"
+  }
+}
+```
+
+## App Directory
+
+### src/app/layout.tsx
+```typescript
+import { Inter } from "next/font/google";
+import { Providers } from "./providers";
+import { cn } from "@/lib/utils";
+import "@/app/globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+export const metadata = {
+  title: "NEXO - Tu legado inteligente",
+  description: "NEXO - Tu legado inteligente: legado digital e inteligencia personalizada",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={cn(
+        "min-h-screen bg-white font-sans antialiased dark:bg-gray-950",
+        inter.variable
+      )}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+### src/app/providers.tsx
+```typescript
+"use client";
+
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { ThemeProvider } from "next-themes";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+type Language = "en" | "es" | "fr" | "de" | "zh";
+
+interface LanguageContextProps {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+}
+
+const LanguageContext = createContext<LanguageContextProps | undefined>(undefined);
+
+export const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error("useLanguage must be used within a LanguageProvider");
+  }
+  return context;
+};
+
+const navLinks = [
+  { href: "/ai", label: "IA Personalizada" },
+  { href: "/legacy", label: "Legado Digital" },
+  { href: "/historical", label: "Personajes Históricos" },
+  { href: "/career", label: "Recomendaciones" },
+  { href: "/settings", label: "Ajustes" },
+];
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const [language, setLanguage] = useState<Language>("es");
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      const browserLang = navigator.language.slice(0, 2);
+      if (["en", "es", "fr", "de", "zh"].includes(browserLang)) {
+        setLanguage(browserLang as Language);
+      }
+    }
+  }, []);
+
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <LanguageContext.Provider value={{ language, setLanguage }}>
+        <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/75 backdrop-blur dark:border-gray-800 dark:bg-gray-950/75">
+          <div className="container flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center space-x-2">
+              <span className="text-2xl font-bold">NEXO</span>
+            </Link>
+            <nav className="hidden md:flex items-center space-x-6">
+              {navLinks.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    pathname === href
+                      ? "text-foreground"
+                      : "text-foreground/60"
+                  )}
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </header>
+        <main className="flex-1">{children}</main>
+      </LanguageContext.Provider>
+    </ThemeProvider>
+  );
+}
+```
+
+### src/app/page.tsx
+```typescript
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+
+export default function HomePage() {
+  const router = useRouter();
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-12 space-y-12">
+      <section className="text-center space-y-6">
+        <h1 className="text-4xl md:text-6xl font-bold">
+          NEXO - Tu legado inteligente
+        </h1>
+        <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          Una plataforma que combina IA personalizada, legado digital y conexiones históricas para crear tu reflejo digital único.
+        </p>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-colors">
+          <h2 className="text-xl font-semibold mb-3">IA Personalizada</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Interactúa con tu IA personal que aprende de ti y se convierte en tu reflejo digital.
+          </p>
+          <Button onClick={() => router.push("/ai")} className="w-full">
+            Comenzar chat
+          </Button>
+        </div>
+
+        <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-colors">
+          <h2 className="text-xl font-semibold mb-3">Legado Digital</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Crea mensajes para el futuro en texto, audio, video o documentos.
+          </p>
+          <Button onClick={() => router.push("/legacy")} className="w-full">
+            Crear mensaje
+          </Button>
+        </div>
+
+        <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-colors">
+          <h2 className="text-xl font-semibold mb-3">Personajes Históricos</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Chatea con figuras históricas simuladas con IA basada en datos reales.
+          </p>
+          <Button onClick={() => router.push("/historical")} className="w-full">
+            Explorar personajes
+          </Button>
+        </div>
+
+        <div className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-colors">
+          <h2 className="text-xl font-semibold mb-3">Recomendaciones</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Recibe sugerencias personalizadas para tu desarrollo profesional.
+          </p>
+          <Button onClick={() => router.push("/career")} className="w-full">
+            Ver recomendaciones
+          </Button>
+        </div>
+      </section>
+
+      <section className="text-center space-y-6">
+        <h2 className="text-3xl font-bold">¿Por qué NEXO?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="space-y-3">
+            <h3 className="text-xl font-semibold">IA Personal</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Una IA que aprende de tus interacciones y se adapta a tu personalidad.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-xl font-semibold">Legado Digital</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Preserva tus memorias y mensajes importantes para el futuro.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-xl font-semibold">Conexiones Históricas</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Aprende de la historia a través de conversaciones interactivas.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+```
+
+## Components
+
+### src/components/ai/PersonalizedAIChat.tsx
+```typescript
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+
+interface Message {
+  id: string;
+  sender: "user" | "ai";
+  content: string;
+  timestamp: string;
+}
+
+export default function PersonalizedAIChat() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Fetch chat history on mount
+  useEffect(() => {
+    async function fetchChatHistory() {
+      try {
+        const res = await fetch("/api/chat?userId=demoUser&chatType=personalizedAI");
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch chat history:", error);
+      }
+    }
+    fetchChatHistory();
+  }, []);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      sender: "user",
+      content: input.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: "demoUser",
+          chatType: "personalizedAI",
+          sender: "user",
+          content: userMessage.content,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.aiMessage) {
+          setMessages((prev) => [...prev, data.aiMessage]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[600px] max-w-4xl mx-auto border border-gray-200 rounded-lg shadow-lg bg-white dark:bg-gray-900 dark:border-gray-700">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500 dark:text-gray-400 text-center">
+              Comienza la conversación con tu IA personalizada.<br />
+              Estoy aquí para aprender de ti y ayudarte.
+            </p>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                  msg.sender === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <span className="text-xs opacity-70 mt-1 block">
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex space-x-4">
+          <textarea
+            aria-label="Escribe tu mensaje"
+            rows={2}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            className="flex-1 resize-none rounded-lg border border-gray-300 dark:border-gray-600 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            placeholder="Escribe tu mensaje aquí..."
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+              !input.trim() || isLoading
+                ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
+          >
+            {isLoading ? "Enviando..." : "Enviar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### src/components/historical/HistoricalCharacterChat.tsx
+```typescript
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+
+interface Message {
+  id: string;
+  sender: "user" | "character";
+  content: string;
+  timestamp: string;
+}
+
+interface HistoricalFigure {
+  id: string;
+  name: string;
+  description: string;
+}
+
+const historicalFigures: HistoricalFigure[] = [
+  {
+    id: "mandela",
+    name: "Nelson Mandela",
+    description: "Líder del movimiento contra el apartheid y presidente de Sudáfrica",
+  },
+  {
+    id: "einstein",
+    name: "Albert Einstein",
+    description: "Físico teórico y desarrollador de la teoría de la relatividad",
+  },
+  {
+    id: "davinci",
+    name: "Leonardo da Vinci",
+    description: "Polímata del Renacimiento: artista, inventor y científico",
+  },
+  {
+    id: "cleopatra",
+    name: "Cleopatra",
+    description: "Última gobernante activa del Reino Ptolemaico de Egipto",
+  },
+];
+
+export default function HistoricalCharacterChat() {
+  const [selectedFigure, setSelectedFigure] = useState<HistoricalFigure>(historicalFigures[0]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Fetch chat history when character changes
+  useEffect(() => {
+    async function fetchChatHistory() {
+      try {
+        const res = await fetch(
+          `/api/chat?userId=demoUser&chatType=historicalCharacter&characterId=${selectedFigure.id}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch chat history:", error);
+      }
+    }
+    fetchChatHistory();
+  }, [selectedFigure.id]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      sender: "user",
+      content: input.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: "demoUser",
+          chatType: "historicalCharacter",
+          characterId: selectedFigure.id,
+          sender: "user",
+          content: userMessage.content,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.aiMessage) {
+          setMessages((prev) => [...prev, data.aiMessage]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[600px] max-w-4xl mx-auto border border-gray-200 rounded-lg shadow-lg bg-white dark:bg-gray-900 dark:border-gray-700">
+      <div className="border-b border-gray-200 dark:border-gray-700 p-4">
+        <select
+          value={selectedFigure.id}
+          onChange={(e) => {
+            const figure = historicalFigures.find((f) => f.id === e.target.value);
+            if (figure) setSelectedFigure(figure);
+          }}
+          className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+        >
+          {historicalFigures.map((figure) => (
+            <option key={figure.id} value={figure.id}>
+              {figure.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          {selectedFigure.description}
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500 dark:text-gray-400 text-center">
+              Comienza una conversación con {selectedFigure.name}.<br />
+              Pregunta sobre su vida, obra y experiencias.
+            </p>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                  msg.sender === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <span className="text-xs opacity-70 mt-1 block">
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex space-x-4">
+          <textarea
+            aria-label="Escribe tu mensaje"
+            rows={2}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            className="flex-1 resize-none rounded-lg border border-gray-300 dark:border-gray-600 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            placeholder={`Escribe tu mensaje para ${selectedFigure.name}...`}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+              !input.trim() || isLoading
+                ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
+          >
+            {isLoading ? "Enviando..." : "Enviar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### src/components/legacy/LegacyMessageCreator.tsx
+```typescript
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+
+interface Message {
+  id: string;
+  type: "text" | "audio" | "video" | "document";
+  content: string;
+  unlockDateTime: string;
+}
+
+const messageTypes = [
+  { value: "text", label: "Texto" },
+  { value: "audio", label: "Audio" },
+  { value: "video", label: "Video" },
+  { value: "document", label: "Documento" },
+];
+
+export default function LegacyMessageCreator() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [type, setType] = useState<"text" | "audio" | "video" | "document">("text");
+  const [content, setContent] = useState("");
+  const [unlockDate, setUnlockDate] = useState<Date>(new Date());
+  const [unlockTime, setUnlockTime] = useState("12:00");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch existing messages
+  useEffect(() => {
+    async function fetchMessages() {
+      try {
+        const res = await fetch("/api/messages?userId=demoUser");
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+      }
+    }
+    fetchMessages();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim() || isLoading) return;
+
+    setIsLoading(true);
+    const unlockDateTime = new Date(unlockDate);
+    const [hours, minutes] = unlockTime.split(":").map(Number);
+    unlockDateTime.setHours(hours, minutes);
+
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: "demoUser",
+          type,
+          content,
+          unlockDateTime: unlockDateTime.toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) => [...prev, data.newMessage]);
+        setContent("");
+        setType("text");
+        setUnlockDate(new Date());
+        setUnlockTime("12:00");
+      }
+    } catch (error) {
+      console.error("Failed to save message:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Tipo de mensaje
+              </label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as typeof type)}
+                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              >
+                {messageTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Contenido
+              </label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={6}
+                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none"
+                placeholder="Escribe tu mensaje aquí..."
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Fecha de desbloqueo
+              </label>
+              <Calendar
+                mode="single"
+                selected={unlockDate}
+                onSelect={(date) => date && setUnlockDate(date)}
+                className="rounded-md border"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Hora de desbloqueo
+              </label>
+              <input
+                type="time"
+                value={unlockTime}
+                onChange={(e) => setUnlockTime(e.target.value)}
+                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={!content.trim() || isLoading}
+          className="w-full"
+        >
+          {isLoading ? "Guardando..." : "Guardar mensaje"}
+        </Button>
+      </form>
+
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold">Mensajes programados</h3>
+        {messages.length === 0
